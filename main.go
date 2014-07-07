@@ -45,7 +45,7 @@ func main() {
 	router.HandleFunc("/", slash)
 	router.HandleFunc("/hello/{name:[a-zA-Z]+}", hello)
 	router.HandleFunc("/who", saidHelloTo)
-
+	router.HandleFunc("/login", loginPage)
 	log.Println("Listening...")
 	http.ListenAndServe(":"+strconv.Itoa(conf.Port), router)
 }
