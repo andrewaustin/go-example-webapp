@@ -2,4 +2,4 @@ User = "root"
 Pass = "secret"
 Database = "test"
 Port = 3000
-DBSecret = "abc123"
+CookieBSecret = "abc123"

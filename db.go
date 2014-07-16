@@ -44,3 +44,37 @@ func getNames() []string {
 
 	return names
 }
+
+// TODO: This should return a hash instead of a password =)
+func getUserPass(user string) string {
+	var pass string
+
+	err := db.QueryRow("SELECT password FROM users WHERE username=?", user).Scan(&pass)
+	if err != nil {
+		log.Println(err)
+	}
+
+	return pass
+}
+
+func getUserId(user string) int {
+	var id int
+
+	err := db.QueryRow("SELECT id FROM users WHERE username=?", user).Scan(&id)
+	if err != nil {
+		log.Println(err)
+	}
+
+	return id
+}
+
+func getUsername(id int) string {
+	var name string
+
+	err := db.QueryRow("SELECT username FROM users WHERE id=?", id).Scan(&name)
+	if err != nil {
+		log.Println(err)
+	}
+
+	return name
+}
