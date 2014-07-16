@@ -7,3 +7,9 @@ A simple go web app illustrating:
 * Simple authentication
 * Gorilla mux
 * Gorilla sessions
+
+Things I will eventually fix:
+
+* Plain text passwords (will use bcrypt)
+* Globals (db, store)
+* Error handling
