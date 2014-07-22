@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"strings"
 
+	"code.google.com/p/go.crypto/bcrypt"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/gorilla/mux"
 )
@@ -64,9 +65,8 @@ func login(w http.ResponseWriter, r *http.Request) {
 	if len(user) == 0 || len(pass) == 0 {
 		http.Error(w, "Please supply non-empty username and password", 401)
 	} else {
-		// TODO: This is bad for security =)
-		// User bcrypt later
-		if pass == getUserPass(user) {
+		err := bcrypt.CompareHashAndPassword([]byte(getUserHash(user)), []byte(pass))
+		if err == nil {
 			session, err := store.Get(r, "user")
 			if err != nil {
 				http.Error(w, err.Error(), 500)
@@ -79,8 +79,36 @@ func login(w http.ResponseWriter, r *http.Request) {
 			http.Redirect(w, r, "/", 302)
 
 		} else {
-
+			log.Println(err)
 			http.Error(w, "Invalid Username or Password", 401)
+		}
+	}
+}
+
+func registerPage(w http.ResponseWriter, r *http.Request) {
+	t, err := template.ParseFiles("templates/register.html")
+	if err != nil {
+		log.Fatal(err)
+	}
+	err = t.Execute(w, nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+}
+
+func register(w http.ResponseWriter, r *http.Request) {
+	user := r.FormValue("username")
+	pass := r.FormValue("password")
+
+	if len(user) == 0 || len(pass) == 0 {
+		http.Error(w, "Please supply non-empty username and password", 401)
+	} else {
+		hashedPassword, err := bcrypt.GenerateFromPassword([]byte(pass), 10)
+		if err == nil {
+			setUserPassword([]byte(user), hashedPassword)
+			http.Redirect(w, r, "/login", 302)
+		} else {
+			log.Fatal(err)
 		}
 	}
 }

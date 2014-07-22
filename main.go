@@ -50,6 +50,8 @@ func main() {
 	router.HandleFunc("/who", saidHelloTo)
 	router.HandleFunc("/login", loginPage).Methods("GET")
 	router.HandleFunc("/login", login).Methods("POST")
+	router.HandleFunc("/register", registerPage).Methods("GET")
+	router.HandleFunc("/register", register).Methods("POST")
 	router.HandleFunc("/logout", logout)
 	log.Println("Listening...")
 	http.ListenAndServe(":"+strconv.Itoa(conf.Port), router)

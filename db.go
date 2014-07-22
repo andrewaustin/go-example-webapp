@@ -22,7 +22,7 @@ func getNames() []string {
 	names := make([]string, 0)
 	var name string
 
-	rows, err := db.Query("select name from hellos")
+	rows, err := db.Query("SELECT name FROM hellos")
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -45,8 +45,7 @@ func getNames() []string {
 	return names
 }
 
-// TODO: This should return a hash instead of a password =)
-func getUserPass(user string) string {
+func getUserHash(user string) string {
 	var pass string
 
 	err := db.QueryRow("SELECT password FROM users WHERE username=?", user).Scan(&pass)
@@ -55,6 +54,19 @@ func getUserPass(user string) string {
 	}
 
 	return pass
+}
+
+func setUserPassword(user, hash []byte) {
+	stmt, err := db.Prepare("INSERT INTO users(username, password) VALUES(?,?)")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	_, err = stmt.Exec(user, hash)
+	if err != nil {
+		log.Println("Error here...")
+		log.Fatal(err)
+	}
 }
 
 func getUserId(user string) int {
