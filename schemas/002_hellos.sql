@@ -1,0 +1,6 @@
+CREATE TABLE hellos(
+	id INT NOT NULL AUTO_INCREMENT, 
+	name VARCHAR(32),
+
+	PRIMARY KEY (id)
+);

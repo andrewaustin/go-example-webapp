@@ -11,7 +11,21 @@ import (
 	"github.com/gorilla/mux"
 )
 
-func slash(w http.ResponseWriter, r *http.Request) {
+type appHandler func(http.ResponseWriter, *http.Request) (int, error)
+
+func (fn appHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	if status, err := fn(w, r); err != nil {
+		log.Println(err)
+		switch status {
+		case http.StatusNotFound:
+			http.Error(w, http.StatusText(http.StatusNotFound), 404)
+		default:
+			http.Error(w, http.StatusText(http.StatusInternalServerError), 500)
+		}
+	}
+}
+
+func slash(w http.ResponseWriter, r *http.Request) (int, error) {
 	name := "World!"
 
 	session, _ := store.Get(r, "user")
@@ -25,9 +39,11 @@ func slash(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Write([]byte("Hello, " + name))
+
+	return http.StatusOK, nil
 }
 
-func hello(w http.ResponseWriter, r *http.Request) {
+func hello(w http.ResponseWriter, r *http.Request) (int, error) {
 	params := mux.Vars(r)
 
 	name := params["name"]
@@ -35,27 +51,26 @@ func hello(w http.ResponseWriter, r *http.Request) {
 	addName(name)
 
 	w.Write([]byte("Hello, " + name))
+
+	return http.StatusOK, nil
 }
 
-func saidHelloTo(w http.ResponseWriter, r *http.Request) {
+func saidHelloTo(w http.ResponseWriter, r *http.Request) (int, error) {
 	w.Write([]byte(strings.Join(getNames(), "\n")))
+
+	return http.StatusOK, nil
 }
 
-func loginPage(w http.ResponseWriter, r *http.Request) {
-	data := struct {
-		Name string
-	}{
-		"BOB DOLE",
-	}
-
+func loginPage(w http.ResponseWriter, r *http.Request) (int, error) {
 	t, err := template.ParseFiles("templates/login.html")
 	if err != nil {
-		log.Fatal(err)
+		return http.StatusInternalServerError, err
 	}
-	err = t.Execute(w, data)
-	if err != nil {
-		log.Fatal(err)
+	if err = t.Execute(w, nil); err != nil {
+		return http.StatusInternalServerError, err
 	}
+
+	return http.StatusOK, nil
 }
 
 func login(w http.ResponseWriter, r *http.Request) {
@@ -85,15 +100,17 @@ func login(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func registerPage(w http.ResponseWriter, r *http.Request) {
+func registerPage(w http.ResponseWriter, r *http.Request) (int, error) {
 	t, err := template.ParseFiles("templates/register.html")
 	if err != nil {
-		log.Fatal(err)
+		return http.StatusInternalServerError, err
 	}
 	err = t.Execute(w, nil)
 	if err != nil {
-		log.Fatal(err)
+		return http.StatusInternalServerError, err
 	}
+
+	return http.StatusOK, nil
 }
 
 func register(w http.ResponseWriter, r *http.Request) {
@@ -113,9 +130,11 @@ func register(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func logout(w http.ResponseWriter, r *http.Request) {
+func logout(w http.ResponseWriter, r *http.Request) (int, error) {
 	session, _ := store.Get(r, "user")
 	delete(session.Values, "id")
 	session.Save(r, w)
 	w.Write([]byte("Logged Out"))
+
+	return http.StatusOK, nil
 }

@@ -33,7 +33,6 @@ func getNames() []string {
 		if err != nil {
 			log.Fatal(err)
 		}
-		log.Println(name)
 		names = append(names, name)
 	}
 
