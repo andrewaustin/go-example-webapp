@@ -15,7 +15,7 @@ A simple go web app illustrating:
 2. ```cd go-example-webapp```
 3. ```cp config.example.toml config.toml```
 4. Modify config.toml to suit your needs.
-5. ```cat schemas/*.sql | mysql -u root -p -D <database name>
+5. ```cat schemas/*.sql | mysql -u root -p -D <database name>```
 6. ```go run *.go``` 
 
 ## Things I will eventually fix:
