@@ -49,10 +49,13 @@ func main() {
 	router.Handle("/hello/{name:[a-zA-Z]+}", appHandler(hello))
 	router.Handle("/who", appHandler(saidHelloTo))
 	router.Handle("/login", appHandler(loginPage)).Methods("GET")
-	router.HandleFunc("/login", login).Methods("POST")
+	router.Handle("/login", appHandler(login)).Methods("POST")
 	router.Handle("/register", appHandler(registerPage)).Methods("GET")
-	router.HandleFunc("/register", register).Methods("POST")
+	router.Handle("/register", appHandler(register)).Methods("POST")
 	router.Handle("/logout", appHandler(logout))
 	log.Println("Listening...")
-	http.ListenAndServe(":"+strconv.Itoa(conf.Port), router)
+	err = http.ListenAndServe(":"+strconv.Itoa(conf.Port), router)
+	if err != nil {
+		log.Fatal(err)
+	}
 }
