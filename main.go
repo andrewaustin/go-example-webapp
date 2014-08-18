@@ -12,10 +12,23 @@ import (
 	"github.com/gorilla/sessions"
 )
 
-var conf Config
-var db *sql.DB
-var connStr string
-var store *sessions.CookieStore
+type appContext struct {
+	conf    Config
+	db      *sql.DB
+	connStr string
+	store   *sessions.CookieStore
+}
+
+func NewAppContext(conf Config) *appContext {
+	connStr := conf.User + ":" + conf.Pass + "@tcp(127.0.0.1:3306)/" + conf.Database
+	db, err := sql.Open("mysql", connStr)
+	if err != nil {
+		log.Fatal(err)
+	}
+	store := sessions.NewCookieStore([]byte(conf.CookieSecret))
+
+	return &appContext{conf, db, connStr, store}
+}
 
 type Config struct {
 	Port         int
@@ -25,36 +38,27 @@ type Config struct {
 	CookieSecret string
 }
 
-func init() {
-	if _, err := toml.DecodeFile("config.toml", &conf); err != nil {
-		log.Fatal(err)
-	}
-
-	connStr = conf.User + ":" + conf.Pass + "@tcp(127.0.0.1:3306)/" + conf.Database
-	store = sessions.NewCookieStore([]byte(conf.CookieSecret))
-}
-
 func main() {
 	var err error
+	var config Config
 
-	db, err = sql.Open("mysql", connStr)
-	if err != nil {
+	if _, err := toml.DecodeFile("config.toml", &config); err != nil {
 		log.Fatal(err)
 	}
-	defer db.Close()
-	log.Println("Establishing database connection...")
 
+	appCtx := NewAppContext(config)
+	defer appCtx.db.Close()
 	router := mux.NewRouter()
-	router.Handle("/", appHandler(slash))
-	router.Handle("/hello/{name:[a-zA-Z]+}", appHandler(hello))
-	router.Handle("/who", appHandler(saidHelloTo))
-	router.Handle("/login", appHandler(loginPage)).Methods("GET")
-	router.Handle("/login", appHandler(login)).Methods("POST")
-	router.Handle("/register", appHandler(registerPage)).Methods("GET")
-	router.Handle("/register", appHandler(register)).Methods("POST")
-	router.Handle("/logout", appHandler(logout))
+	router.Handle("/", appHandler{appCtx, slash})
+	router.Handle("/hello/{name:[a-zA-Z]+}", appHandler{appCtx, hello})
+	router.Handle("/who", appHandler{appCtx, saidHelloTo})
+	router.Handle("/login", appHandler{appCtx, loginPage}).Methods("GET")
+	router.Handle("/login", appHandler{appCtx, login}).Methods("POST")
+	router.Handle("/register", appHandler{appCtx, registerPage}).Methods("GET")
+	router.Handle("/register", appHandler{appCtx, register}).Methods("POST")
+	router.Handle("/logout", appHandler{appCtx, logout})
 	log.Println("Listening...")
-	err = http.ListenAndServe(":"+strconv.Itoa(conf.Port), router)
+	err = http.ListenAndServe(":"+strconv.Itoa(appCtx.conf.Port), router)
 	if err != nil {
 		log.Fatal(err)
 	}

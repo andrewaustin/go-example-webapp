@@ -8,6 +8,7 @@ A simple go web app illustrating:
 * Gorilla mux
 * Gorilla sessions
 * Storing passwords with bcrypt
+* Application Context rather than global variables
 
 ## Directions
 
@@ -20,8 +21,9 @@ A simple go web app illustrating:
 
 ## Things I will eventually fix:
 
-* Globals (db, store)
 * Lock down routes
+* Tests
+* Use https://github.com/juju/errgo
 
 ## Thanks
 Special thanks to Matt Silverlock (https://github.com/elithrar) for writing some excellent articles on web apps in go.

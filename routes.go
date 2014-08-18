@@ -12,10 +12,14 @@ import (
 	"github.com/gorilla/mux"
 )
 
-type appHandler func(http.ResponseWriter, *http.Request) (int, error)
+type appHandler struct {
+	*appContext
+	handler func(*appContext, http.ResponseWriter, *http.Request) (int, error)
+}
 
-func (fn appHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	if status, err := fn(w, r); err != nil {
+func (ah appHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	status, err := ah.handler(ah.appContext, w, r)
+	if err != nil {
 		log.Println(err)
 		switch status {
 		case http.StatusNotFound:
@@ -26,14 +30,14 @@ func (fn appHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func slash(w http.ResponseWriter, r *http.Request) (int, error) {
+func slash(a *appContext, w http.ResponseWriter, r *http.Request) (int, error) {
 	name := "World!"
 
-	session, _ := store.Get(r, "user")
+	session, _ := a.store.Get(r, "user")
 	id := session.Values["id"]
 
 	if id != nil {
-		tempName, err := getUsername(id.(int))
+		tempName, err := getUsername(a.db, id.(int))
 		if err != nil {
 			return http.StatusInternalServerError, err
 		}
@@ -47,20 +51,20 @@ func slash(w http.ResponseWriter, r *http.Request) (int, error) {
 	return http.StatusOK, nil
 }
 
-func hello(w http.ResponseWriter, r *http.Request) (int, error) {
+func hello(a *appContext, w http.ResponseWriter, r *http.Request) (int, error) {
 	params := mux.Vars(r)
 
 	name := params["name"]
 
-	addName(name)
+	addName(a.db, name)
 
 	w.Write([]byte("Hello, " + name))
 
 	return http.StatusOK, nil
 }
 
-func saidHelloTo(w http.ResponseWriter, r *http.Request) (int, error) {
-	names, err := getNames()
+func saidHelloTo(a *appContext, w http.ResponseWriter, r *http.Request) (int, error) {
+	names, err := getNames(a.db)
 	if err != nil {
 		return http.StatusInternalServerError, err
 	}
@@ -69,7 +73,7 @@ func saidHelloTo(w http.ResponseWriter, r *http.Request) (int, error) {
 	return http.StatusOK, nil
 }
 
-func loginPage(w http.ResponseWriter, r *http.Request) (int, error) {
+func loginPage(a *appContext, w http.ResponseWriter, r *http.Request) (int, error) {
 	t, err := template.ParseFiles("templates/login.html")
 	if err != nil {
 		return http.StatusInternalServerError, err
@@ -81,26 +85,26 @@ func loginPage(w http.ResponseWriter, r *http.Request) (int, error) {
 	return http.StatusOK, nil
 }
 
-func login(w http.ResponseWriter, r *http.Request) (int, error) {
+func login(a *appContext, w http.ResponseWriter, r *http.Request) (int, error) {
 	user := r.FormValue("username")
 	pass := r.FormValue("password")
 
 	if len(user) == 0 || len(pass) == 0 {
 		return http.StatusUnauthorized, errors.New("Please supply non-empty username and password")
 	} else {
-		userHash, err := getUserHash(user)
+		userHash, err := getUserHash(a.db, user)
 		if err != nil {
 			return http.StatusUnauthorized, err
 		}
 		err = bcrypt.CompareHashAndPassword([]byte(userHash), []byte(pass))
 		if err == nil {
-			session, err := store.Get(r, "user")
+			session, err := a.store.Get(r, "user")
 			if err != nil {
 				return http.StatusInternalServerError, err
 			}
 
 			var userId int
-			userId, err = getUserId(user)
+			userId, err = getUserId(a.db, user)
 			if err != nil {
 				return http.StatusInternalServerError, err
 			}
@@ -117,7 +121,7 @@ func login(w http.ResponseWriter, r *http.Request) (int, error) {
 	return http.StatusOK, nil
 }
 
-func registerPage(w http.ResponseWriter, r *http.Request) (int, error) {
+func registerPage(a *appContext, w http.ResponseWriter, r *http.Request) (int, error) {
 	t, err := template.ParseFiles("templates/register.html")
 	if err != nil {
 		return http.StatusInternalServerError, err
@@ -130,7 +134,7 @@ func registerPage(w http.ResponseWriter, r *http.Request) (int, error) {
 	return http.StatusOK, nil
 }
 
-func register(w http.ResponseWriter, r *http.Request) (int, error) {
+func register(a *appContext, w http.ResponseWriter, r *http.Request) (int, error) {
 	user := r.FormValue("username")
 	pass := r.FormValue("password")
 
@@ -139,7 +143,7 @@ func register(w http.ResponseWriter, r *http.Request) (int, error) {
 	} else {
 		hashedPassword, err := bcrypt.GenerateFromPassword([]byte(pass), 10)
 		if err == nil {
-			err = setUserPassword([]byte(user), hashedPassword)
+			err = setUserPassword(a.db, []byte(user), hashedPassword)
 			if err != nil {
 				return http.StatusInternalServerError, err
 			}
@@ -152,8 +156,8 @@ func register(w http.ResponseWriter, r *http.Request) (int, error) {
 	return http.StatusOK, nil
 }
 
-func logout(w http.ResponseWriter, r *http.Request) (int, error) {
-	session, _ := store.Get(r, "user")
+func logout(a *appContext, w http.ResponseWriter, r *http.Request) (int, error) {
+	session, _ := a.store.Get(r, "user")
 	delete(session.Values, "id")
 	session.Save(r, w)
 	w.Write([]byte("Logged Out"))

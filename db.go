@@ -1,8 +1,12 @@
 package main
 
-import _ "github.com/go-sql-driver/mysql"
+import (
+	"database/sql"
 
-func addName(name string) error {
+	_ "github.com/go-sql-driver/mysql"
+)
+
+func addName(db *sql.DB, name string) error {
 	stmt, err := db.Prepare("INSERT INTO hellos(name) VALUES(?)")
 	if err != nil {
 		return err
@@ -16,7 +20,7 @@ func addName(name string) error {
 	return nil
 }
 
-func getNames() ([]string, error) {
+func getNames(db *sql.DB) ([]string, error) {
 	names := make([]string, 0)
 	var name string
 
@@ -42,7 +46,7 @@ func getNames() ([]string, error) {
 	return names, nil
 }
 
-func getUserHash(user string) (string, error) {
+func getUserHash(db *sql.DB, user string) (string, error) {
 	var pass string
 
 	err := db.QueryRow("SELECT password FROM users WHERE username=?", user).Scan(&pass)
@@ -53,7 +57,7 @@ func getUserHash(user string) (string, error) {
 	return pass, nil
 }
 
-func setUserPassword(user, hash []byte) error {
+func setUserPassword(db *sql.DB, user, hash []byte) error {
 	stmt, err := db.Prepare("INSERT INTO users(username, password) VALUES(?,?)")
 	if err != nil {
 		return err
@@ -67,7 +71,7 @@ func setUserPassword(user, hash []byte) error {
 	return nil
 }
 
-func getUserId(user string) (int, error) {
+func getUserId(db *sql.DB, user string) (int, error) {
 	var id int
 
 	err := db.QueryRow("SELECT id FROM users WHERE username=?", user).Scan(&id)
@@ -78,7 +82,7 @@ func getUserId(user string) (int, error) {
 	return id, nil
 }
 
-func getUsername(id int) (string, error) {
+func getUsername(db *sql.DB, id int) (string, error) {
 	var name string
 
 	err := db.QueryRow("SELECT username FROM users WHERE id=?", id).Scan(&name)
