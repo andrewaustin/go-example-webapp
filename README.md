@@ -22,6 +22,7 @@ A simple go web app illustrating:
 ## Things I will eventually fix:
 
 * Lock down routes
+* REST endpoints
 * Tests
 * Use https://github.com/juju/errgo
 
